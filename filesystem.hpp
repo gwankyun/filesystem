@@ -25,7 +25,11 @@ namespace filesystem
         {
         }
 
-        CString cstring()
+        path(LPCWSTR path_) : m_path(path_)
+        {
+        }
+
+        CString cstring() const
         {
             return m_path;
         }
@@ -33,7 +37,7 @@ namespace filesystem
         path parent_path()
         {
             int e = m_path.ReverseFind(_T('\\'));
-            return path(m_path.Mid(0, e));
+            return m_path.Mid(0, e);
         }
 
         path operator/(CString other)
@@ -119,5 +123,17 @@ namespace filesystem
     inline bool create_directory(path path_)
     {
         return CreateDirectory(path_, NULL);
+    }
+
+    inline path current_path()
+    {
+        TCHAR current[MAX_PATH];
+        GetCurrentDirectory(MAX_PATH, current);
+        return current;
+    }
+
+    inline void current_path(const path& path_)
+    {
+        SetCurrentDirectory(path_.cstring());
     }
 }
