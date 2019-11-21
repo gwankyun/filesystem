@@ -17,6 +17,7 @@ namespace filesystem
     class path
     {
     public:
+	typedef wchar_t value_type;
         path() : m_path(_T(""))
         {
         }
@@ -75,15 +76,55 @@ namespace filesystem
             return cstring();
         }
 
+	void clear()
+	{
+	    m_path = _T("");
+	}
+
+	bool empty()
+	{
+	    return m_path.IsEmpty();
+	}
+
+	path root_name() const
+	{
+	    int e = m_path.FIND(_T(':'));
+	    return m_path.Mid(0, e + 1);
+	}
+
+	path root_directory() const
+	{
+	    return _T("/");
+	}
+
+	path root_path() const
+	{
+	    CString str = root_name();
+	    str.Append(_T("\\"));
+	    return str;
+	}
+
+	path stem() const
+	{
+	    CString str = filename();
+	    int e = m_path.ReverseFIND(_T('.'));
+	    if (e == 0)
+	    {
+		return str;
+	    }
+	    else
+	    {
+		return str.Mid(0, e);
+	    }
+	}
+
     private:
         CString m_path;
     };
 
     inline bool is_directory(path path_)
     {
-        WIN32_FILE_ATTRIBUTE_DATA data;
-        GetFileAttributesEx(path_, GetFileExInfoStandard, &data);
-        return data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
+	return GetFileAttributes(path_) != FILE_ATTRIBUTE_DIRECTORY;
     }
 
     inline bool exists(path path_)
@@ -109,7 +150,7 @@ namespace filesystem
         uintmax_t freeBytesToCaller = 0;
         uintmax_t totalBytes = 0;
         uintmax_t freeBytes = 0;
-        BOOL result = GetDiskFreeSpaceEx(path_,
+        GetDiskFreeSpaceEx(path_,
             (PULARGE_INTEGER)&freeBytesToCaller,
             (PULARGE_INTEGER)&totalBytes,
             (PULARGE_INTEGER)&freeBytes);
@@ -122,12 +163,12 @@ namespace filesystem
 
     inline bool create_directory(path path_)
     {
-        return CreateDirectory(path_, NULL);
+        return CreateDirectory(path_, NULL) != 0;
     }
 
     inline path current_path()
     {
-        TCHAR current[MAX_PATH];
+	path::value_type current[MAX_PATH];
         GetCurrentDirectory(MAX_PATH, current);
         return current;
     }
@@ -135,5 +176,27 @@ namespace filesystem
     inline void current_path(const path& path_)
     {
         SetCurrentDirectory(path_.cstring());
+    }
+
+    inline void remove(const path& path_)
+    {
+	if (is_directory(path_))
+	{
+	    RemoveDirectory(path_.cstring());
+	}
+	else
+	{
+	    DeleteFile(path_.cstring());
+	}
+    }
+
+    inline void copy(const path& from, const path& to)
+    {
+	CopyFile(from.cstring(), to.cstring(), FALSE);
+    }
+
+    inline void rename(const path& path_old, const path& path_new)
+    {
+	MoveFile(path_old.cstring(), path_new.cstring());
     }
 }
